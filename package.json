@@ -4,7 +4,10 @@
   "private": true,
   "description": "A small full-stack Pomodoro timer for comparing coding styles.",
   "scripts": {
-    "start": "node server.js"
+    "start": "node together/server.js",
+    "start:hand": "node hand/server.js",
+    "start:agent": "node agent/server.js",
+    "start:together": "node together/server.js"
   },
   "engines": {
     "node": ">=18"

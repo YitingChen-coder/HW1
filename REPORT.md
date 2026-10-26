@@ -2,27 +2,27 @@
 
 ## Project Overview
 
-This project implements a Pomodoro timer with focus and break sessions, start/pause/reset controls, configurable durations, and completed-round tracking. The frontend uses native HTML, CSS, and JavaScript. A Node.js HTTP server serves the pages and JSON API, and completed focus sessions are persisted in a JSON file. No third-party dependencies are required.
+This project contains three independently runnable Pomodoro applications. Each includes focus and break sessions, start/pause/reset controls, configurable durations, a Node.js backend with a JSON API, and its own JSON file for persisted focus-session history. No third-party dependencies are required.
 
 The project contains the three approaches required by the assignment:
 
-- **Hand**: a deliberately direct, rough-around-the-edges implementation with casual variable names, representing a beginner's hand-written style. It can load and save history through the backend while keeping the client code compact.
-- **Agent**: an implementation with descriptive names and more function-level decomposition, representing an agent-generated style that favors explicit structure. It also uses the same history API, with the client work split into more descriptive functions.
-- **Together**: a collaborative version intended to reflect decisions made through human-AI discussion. It shares the backend and local session persistence; it is not a fourth approach.
+- **Hand**: a deliberately direct, rough-around-the-edges frontend with casual variable names, paired with its own compact Node.js backend and session file.
+- **Agent**: a frontend with descriptive names and extensive function decomposition, paired with its own deliberately explicit backend implementation and session file.
+- **Together**: the collaborative version with a cleaner interface, a separately structured Node.js API, and its own session file.
 
 ## Comparison
 
 | Version | Characteristics | Strengths | Trade-offs |
 |---|---|---|---|
-| Hand | Short code, casual names, concentrated logic, basic session API calls | Quick to change and easy to follow at first | Harder to maintain and debug as it grows |
-| Agent | Descriptive names, smaller functions, and explicit session API handling | Intent is clearer and individual parts are easier to inspect | Can feel verbose for a small project |
-| Together | Moderate structure, a polished interface, and persisted completion history | Balances collaboration, readability, and frontend/backend functionality | Requires the Node server for session syncing |
+| Hand | Short, rough client and compact backend | Quick to read and change initially | Harder to maintain; backend style is intentionally informal |
+| Agent | Detailed client and verbose, explicitly decomposed backend | Responsibilities and validation steps are easy to inspect | More code and structure than this small app requires |
+| Together | Polished client and independent backend with local persistence | Balances collaboration, readability, and full-stack functionality | Requires starting its own Node server |
 
 ## Experience Report Draft
 
 I compared three implementations of the same Pomodoro timer. The simplest version produced a visible result quickly, but adding pause, focus/break transitions, and completed-round tracking made the relationships between state variables more important. Naming and function boundaries affected how quickly I could understand the code: the casual version was shorter, but it took more effort to identify what each variable represented; the more explicitly structured version was easier to inspect, although it felt like more code than the small application strictly needed.
 
-The collaborative approach works well when the basic requirements are agreed on first and additional structure is chosen together. The Together version adds a Node.js HTTP server, a session API, and JSON-file persistence so completed focus rounds can be saved locally and today's total can be restored when the page is reopened. My main takeaway is that AI can help produce an initial draft and suggest implementation options, but I still need to run the app, test pausing, resetting, mode changes, API writes, and restored data, and decide whether the implementation meets the requirements. Generated code is not automatically verified code.
+The collaborative approach works well when the basic requirements are agreed on first and additional structure is chosen together. Each version now has its own Node.js HTTP server, session API, and JSON-file persistence, so each can be run and tested independently. My main takeaway is that AI can help produce an initial draft and suggest implementation options, but I still need to run every app, test pausing, resetting, mode changes, API writes, and restored data, and decide whether the implementation meets the requirements. Generated code is not automatically verified code.
 
 **Before submitting, revise this draft to describe your actual process.** All three versions in the current workspace were generated with AI to demonstrate different styles. The Hand version imitates a hand-written style; it is not evidence that you personally wrote every line. If the assignment requires personally hand-writing code or reporting your actual time, errors, and revisions, rewrite or modify that version yourself and describe the experience honestly.
 
@@ -37,10 +37,10 @@ The collaborative approach works well when the basic requirements are agreed on 
 
 ## Running and Testing
 
-1. Run `npm start` from the project root and open `http://localhost:3000` (see `README.md`).
+1. Start each version separately with `npm run start:hand`, `npm run start:agent`, or `npm run start:together` (see `README.md`).
 2. Start the timer, then test pausing and resetting.
 3. Temporarily set a duration to one minute and check the mode transition and completed-round count.
-4. All three versions sync completed focus rounds through `/api/sessions`; records are stored in `data/sessions.json`. The timers remain usable without the server, but history will not load or save.
+4. Each version syncs completed focus rounds with its own `/api/sessions`; records are stored in that version's `data/sessions.json` and are not shared across versions.
 
 ## Notes
 
