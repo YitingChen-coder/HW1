@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pomodoro Timer - Together</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #f1f3f5; color: #252a34; font: 16px/1.5 system-ui, sans-serif; }
+    main { width: min(100%, 520px); padding: 30px; background: white; border: 1px solid #e1e4e8; border-radius: 16px; }
+    h1 { margin: 0; font-size: 1.65rem; }
+    .hint { margin: 4px 0 26px; color: #697386; }
+    #mode { text-align: center; color: #ba493f; font-weight: 600; }
+    #clock { margin: 4px 0 18px; text-align: center; font-size: clamp(4rem, 16vw, 6rem); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+    .actions { display: flex; justify-content: center; gap: 8px; }
+    button, input { padding: 10px 13px; font: inherit; border: 1px solid #d8dde5; border-radius: 8px; }
+    button { cursor: pointer; background: white; }
+    button:hover { background: #f7f8fa; }
+    button.primary { background: #ba493f; color: white; border-color: #ba493f; }
+    .settings { display: flex; gap: 14px; margin-top: 28px; }
+    label { display: grid; gap: 6px; flex: 1; color: #525c6d; font-size: .9rem; }
+    input { width: 100%; }
+    .rounds { margin: 22px 0 0; padding-top: 15px; border-top: 1px solid #eceef1; }
+    #syncStatus { display: block; margin-top: 5px; color: #697386; font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Focus Pomodoro</h1>
+    <p class="hint">One focused step at a time adds up to big progress.</p>
+    <p id="mode">Focus Time</p>
+    <div id="clock" aria-live="polite">25:00</div>
+    <div class="actions">
+      <button class="primary" id="start">Start</button>
+      <button id="pause">Pause</button>
+      <button id="reset">Reset</button>
+    </div>
+    <div class="settings">
+      <label>Focus duration (minutes)<input id="focus" type="number" min="1" max="180" value="25"></label>
+      <label>Break duration (minutes)<input id="break" type="number" min="1" max="60" value="5"></label>
+    </div>
+    <p class="rounds">Focus rounds completed today: <strong id="rounds">0</strong><span id="syncStatus" role="status">Connecting to local session service...</span></p>
+  </main>
+  <script>
+    const $ = (selector) => document.querySelector(selector);
+    const state = { mode: "focus", seconds: 25 * 60, rounds: 0, interval: null, totalSeconds: 25 * 60 };
+
+    function minutesForMode() {
+      const input = state.mode === "focus" ? $("#focus") : $("#break");
+      const maximum = state.mode === "focus" ? 180 : 60;
+      const value = Math.floor(Number(input.value));
+      return Number.isFinite(value) && value > 0 ? Math.min(value, maximum) : (state.mode === "focus" ? 25 : 5);
+    }
+
+    function render() {
+      const minutes = Math.floor(state.seconds / 60);
+      const seconds = state.seconds % 60;
+      $("#clock").textContent = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+      $("#mode").textContent = state.mode === "focus" ? "Focus Time" : "Break Time";
+      $("#rounds").textContent = state.rounds;
+    }
+
+    function stop() {
+      if (state.interval !== null) clearInterval(state.interval);
+      state.interval = null;
+    }
+
+    function reset() {
+      stop();
+      state.seconds = minutesForMode() * 60;
+      state.totalSeconds = state.seconds;
+      render();
+    }
+
+    async function loadTodayRounds() {
+      try {
+        const response = await fetch("/api/sessions");
+        if (!response.ok) throw new Error("Could not load sessions");
+        const { sessions } = await response.json();
+        const today = new Date().toLocaleDateString();
+        state.rounds = sessions.filter((session) =>
+          new Date(session.completedAt).toLocaleDateString() === today
+        ).length;
+        $("#syncStatus").textContent = "Completed sessions are saved locally.";
+        render();
+      } catch {
+        $("#syncStatus").textContent = "Session service is unavailable. The timer is still usable.";
+      }
+    }
+
+    async function saveFocusRound(durationSeconds) {
+      try {
+        const response = await fetch("/api/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: "focus", durationSeconds }),
+        });
+        if (!response.ok) throw new Error("Could not save session");
+        $("#syncStatus").textContent = "This round has been saved locally.";
+      } catch {
+        $("#syncStatus").textContent = "Round complete, but saving failed. Check that the server is running.";
+      }
+    }
+
+    function finishRound() {
+      stop();
+      if (state.mode === "focus") {
+        state.rounds += 1;
+        void saveFocusRound(state.totalSeconds);
+        state.mode = "break";
+      } else {
+        state.mode = "focus";
+      }
+      reset();
+      alert(state.mode === "break" ? "Focus session complete. Take a break!" : "Break is over. Keep going!");
+    }
+
+    function tick() {
+      state.seconds -= 1;
+      if (state.seconds <= 0) {
+        state.seconds = 0;
+        render();
+        finishRound();
+      } else {
+        render();
+      }
+    }
+
+    $("#start").addEventListener("click", () => {
+      if (state.interval === null) state.interval = setInterval(tick, 1000);
+    });
+    $("#pause").addEventListener("click", stop);
+    $("#reset").addEventListener("click", reset);
+    $("#focus").addEventListener("change", reset);
+    $("#break").addEventListener("change", reset);
+    render();
+    void loadTodayRounds();
+  </script>
+</body>
+</html>

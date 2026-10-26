@@ -1,0 +1,12 @@
+{
+  "name": "focus-pomodoro-study",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A small full-stack Pomodoro timer for comparing coding styles.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

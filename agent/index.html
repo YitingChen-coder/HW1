@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pomodoro Timer - Agent</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 40px 18px; background: #eef2f6; color: #172033; font-family: system-ui, sans-serif; }
+    main { width: min(100%, 620px); margin: auto; padding: 32px; border-radius: 18px; background: white; box-shadow: 0 12px 35px #25344b16; }
+    h1 { margin: 0 0 8px; }
+    .sub { color: #667085; }
+    .timer { margin: 26px 0 18px; font-size: 82px; font-variant-numeric: tabular-nums; font-weight: 700; text-align: center; }
+    .mode { text-align: center; color: #d64c43; font-weight: 700; }
+    .controls, .settings { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    button, input { border: 1px solid #d0d5dd; border-radius: 9px; padding: 10px 14px; font: inherit; }
+    button { background: white; cursor: pointer; }
+    button.primary { background: #d64c43; color: white; border-color: #d64c43; }
+    .settings { justify-content: flex-start; margin-top: 28px; }
+    label { display: grid; gap: 6px; color: #475467; }
+    input { width: 100px; }
+    .count { margin-top: 24px; padding: 14px; background: #f8fafc; border-radius: 10px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Focus Pomodoro</h1>
+    <p class="sub">Break big tasks into small steps. Focus on one thing at a time.</p>
+    <p class="mode" id="modeLabel">Focus Time</p>
+    <div class="timer" id="timerDisplay" aria-live="polite">25:00</div>
+    <div class="controls">
+      <button class="primary" id="startButton" type="button">Start</button>
+      <button id="pauseButton" type="button">Pause</button>
+      <button id="resetButton" type="button">Reset Round</button>
+    </div>
+    <div class="settings">
+      <label>Focus (minutes)<input id="focusMinutesInput" type="number" min="1" max="180" value="25"></label>
+      <label>Break (minutes)<input id="breakMinutesInput" type="number" min="1" max="60" value="5"></label>
+    </div>
+    <div class="count">Completed focus rounds: <strong id="completedRounds">0</strong></div>
+  </main>
+  <script>
+    // This implementation keeps timer state together and gives each action a named function.
+    const timerDisplayElement = document.getElementById("timerDisplay");
+    const modeLabelElement = document.getElementById("modeLabel");
+    const startButtonElement = document.getElementById("startButton");
+    const pauseButtonElement = document.getElementById("pauseButton");
+    const resetButtonElement = document.getElementById("resetButton");
+    const focusMinutesInputElement = document.getElementById("focusMinutesInput");
+    const breakMinutesInputElement = document.getElementById("breakMinutesInput");
+    const completedRoundsElement = document.getElementById("completedRounds");
+
+    let currentModeName = "focus";
+    let remainingSecondsCount = 25 * 60;
+    let completedFocusRoundsCount = 0;
+    let timerIntervalHandle = null;
+
+    function readPositiveMinutesValue(inputElement, fallbackValue) {
+      const parsedMinutesValue = Number(inputElement.value);
+      if (!Number.isFinite(parsedMinutesValue) || parsedMinutesValue < 1) {
+        return fallbackValue;
+      }
+      return Math.min(Math.floor(parsedMinutesValue), 180);
+    }
+
+    function getDurationSecondsForCurrentMode() {
+      const selectedMinutesValue = currentModeName === "focus"
+        ? readPositiveMinutesValue(focusMinutesInputElement, 25)
+        : readPositiveMinutesValue(breakMinutesInputElement, 5);
+      return selectedMinutesValue * 60;
+    }
+
+    function renderTimerDisplay() {
+      const wholeMinutesValue = Math.floor(remainingSecondsCount / 60);
+      const remainingSecondDigitsValue = remainingSecondsCount % 60;
+      timerDisplayElement.textContent = `${String(wholeMinutesValue).padStart(2, "0")}:${String(remainingSecondDigitsValue).padStart(2, "0")}`;
+      modeLabelElement.textContent = currentModeName === "focus" ? "Focus Time" : "Break Time";
+    }
+
+    function stopTimerInterval() {
+      if (timerIntervalHandle !== null) {
+        window.clearInterval(timerIntervalHandle);
+        timerIntervalHandle = null;
+      }
+    }
+
+    function resetCurrentTimerRound() {
+      stopTimerInterval();
+      remainingSecondsCount = getDurationSecondsForCurrentMode();
+      renderTimerDisplay();
+    }
+
+    function completeCurrentTimerRound() {
+      stopTimerInterval();
+      if (currentModeName === "focus") {
+        completedFocusRoundsCount += 1;
+        completedRoundsElement.textContent = String(completedFocusRoundsCount);
+        currentModeName = "break";
+      } else {
+        currentModeName = "focus";
+      }
+      resetCurrentTimerRound();
+      window.alert(currentModeName === "break" ? "Focus session complete. Take a break!" : "Break is over. Ready to focus?");
+    }
+
+    function tickTimerOnce() {
+      remainingSecondsCount -= 1;
+      if (remainingSecondsCount <= 0) {
+        remainingSecondsCount = 0;
+        renderTimerDisplay();
+        completeCurrentTimerRound();
+        return;
+      }
+      renderTimerDisplay();
+    }
+
+    function startTimer() {
+      if (timerIntervalHandle !== null) {
+        return;
+      }
+      timerIntervalHandle = window.setInterval(tickTimerOnce, 1000);
+    }
+
+    function pauseTimer() {
+      stopTimerInterval();
+    }
+
+    startButtonElement.addEventListener("click", startTimer);
+    pauseButtonElement.addEventListener("click", pauseTimer);
+    resetButtonElement.addEventListener("click", resetCurrentTimerRound);
+    focusMinutesInputElement.addEventListener("change", resetCurrentTimerRound);
+    breakMinutesInputElement.addEventListener("change", resetCurrentTimerRound);
+
+    renderTimerDisplay();
+  </script>
+</body>
+</html>
