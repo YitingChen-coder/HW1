@@ -21,6 +21,7 @@
     label { display: grid; gap: 6px; color: #475467; }
     input { width: 100px; }
     .count { margin-top: 24px; padding: 14px; background: #f8fafc; border-radius: 10px; }
+    .server-status { min-height: 1.4em; margin: 8px 0 0; color: #667085; font-size: .9rem; }
   </style>
 </head>
 <body>
@@ -38,7 +39,7 @@
       <label>Focus (minutes)<input id="focusMinutesInput" type="number" min="1" max="180" value="25"></label>
       <label>Break (minutes)<input id="breakMinutesInput" type="number" min="1" max="60" value="5"></label>
     </div>
-    <div class="count">Completed focus rounds: <strong id="completedRounds">0</strong></div>
+    <div class="count">Completed focus rounds today: <strong id="completedRounds">0</strong><p class="server-status" id="serverStatus" role="status">Connecting to the local session service...</p></div>
   </main>
   <script>
     // This implementation keeps timer state together and gives each action a named function.
@@ -94,14 +95,51 @@
     function completeCurrentTimerRound() {
       stopTimerInterval();
       if (currentModeName === "focus") {
+        const completedDurationSeconds = getDurationSecondsForCurrentMode();
         completedFocusRoundsCount += 1;
         completedRoundsElement.textContent = String(completedFocusRoundsCount);
+        void saveCompletedFocusRound(completedDurationSeconds);
         currentModeName = "break";
       } else {
         currentModeName = "focus";
       }
       resetCurrentTimerRound();
       window.alert(currentModeName === "break" ? "Focus session complete. Take a break!" : "Break is over. Ready to focus?");
+    }
+
+    async function loadSavedFocusRoundsForToday() {
+      try {
+        const serverResponse = await fetch("/api/sessions");
+        if (!serverResponse.ok) {
+          throw new Error("The session service did not return a successful response.");
+        }
+        const sessionResponseData = await serverResponse.json();
+        const currentLocalDate = new Date().toLocaleDateString();
+        const savedSessionsForToday = sessionResponseData.sessions.filter((savedSession) =>
+          new Date(savedSession.completedAt).toLocaleDateString() === currentLocalDate
+        );
+        completedFocusRoundsCount = savedSessionsForToday.length;
+        completedRoundsElement.textContent = String(completedFocusRoundsCount);
+        document.getElementById("serverStatus").textContent = "Completed sessions are saved locally.";
+      } catch (loadingError) {
+        document.getElementById("serverStatus").textContent = "The timer works offline, but session history is unavailable.";
+      }
+    }
+
+    async function saveCompletedFocusRound(durationSecondsToSave) {
+      try {
+        const saveResponse = await fetch("/api/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: "focus", durationSeconds: durationSecondsToSave }),
+        });
+        if (!saveResponse.ok) {
+          throw new Error("The session service did not save the completed round.");
+        }
+        document.getElementById("serverStatus").textContent = "This focus round was saved to local history.";
+      } catch (savingError) {
+        document.getElementById("serverStatus").textContent = "Round complete, but saving failed. Check that the server is running.";
+      }
     }
 
     function tickTimerOnce() {
@@ -133,6 +171,7 @@
     breakMinutesInputElement.addEventListener("change", resetCurrentTimerRound);
 
     renderTimerDisplay();
+    void loadSavedFocusRoundsForToday();
   </script>
 </body>
 </html>

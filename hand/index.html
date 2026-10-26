@@ -23,7 +23,8 @@
     <button id="again">Reset</button>
     <p>Focus minutes <input id="focusLen" type="number" value="25" min="1"></p>
     <p>Break minutes <input id="breakLen" type="number" value="5" min="1"></p>
-    <p>Completed rounds: <span id="count">0</span></p>
+    <p>Completed rounds today: <span id="count">0</span></p>
+    <p id="saveNote" role="status">Connecting to the local session service...</p>
   </main>
   <script>
     let miao = 25 * 60;
@@ -48,6 +49,36 @@
       showIt();
     }
 
+    async function loadRounds() {
+      try {
+        const response = await fetch("/api/sessions");
+        if (!response.ok) throw new Error("Could not load sessions");
+        const data = await response.json();
+        const today = new Date().toLocaleDateString();
+        ci = data.sessions.filter(function (session) {
+          return new Date(session.completedAt).toLocaleDateString() === today;
+        }).length;
+        document.querySelector("#count").textContent = ci;
+        document.querySelector("#saveNote").textContent = "Completed sessions are saved locally.";
+      } catch (error) {
+        document.querySelector("#saveNote").textContent = "Server unavailable. The timer still works, but rounds will not be saved.";
+      }
+    }
+
+    async function saveRound(seconds) {
+      try {
+        const response = await fetch("/api/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: "focus", durationSeconds: seconds })
+        });
+        if (!response.ok) throw new Error("Could not save session");
+        document.querySelector("#saveNote").textContent = "This focus round was saved.";
+      } catch (error) {
+        document.querySelector("#saveNote").textContent = "Round complete, but saving failed. Check the server.";
+      }
+    }
+
     document.querySelector("#go").onclick = function () {
       if (ding) return;
       ding = setInterval(function () {
@@ -58,6 +89,7 @@
           if (zhuangtai === "focus") {
             ci = ci + 1;
             document.querySelector("#count").textContent = ci;
+            void saveRound(Math.max(1, Number(document.querySelector("#focusLen").value)) * 60);
             zhuangtai = "break";
           } else {
             zhuangtai = "focus";
@@ -73,6 +105,7 @@
     document.querySelector("#focusLen").onchange = resetIt;
     document.querySelector("#breakLen").onchange = resetIt;
     showIt();
+    void loadRounds();
   </script>
 </body>
 </html>

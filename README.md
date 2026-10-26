@@ -6,11 +6,11 @@ A small full-stack Pomodoro timer with a native HTML/CSS/JavaScript frontend, a 
 
 Install Node.js 18 or newer. From the project root, run `npm start`, then open <http://localhost:3000>.
 
-The project contains exactly the three approaches required for the assignment:
+The project contains exactly the three approaches required for the assignment. Each is a complete timer app that can load and save focus history through the local backend:
 
 - `/hand` — Hand: a deliberately simple, hand-written-style version
 - `/agent` — Agent: a more explicit and heavily structured version
-- `/together` — Together: the collaborative version and the full-stack implementation (default home page)
+- `/together` — Together: the collaborative version with a more polished interface (default home page)
 
 Open the pages through the Node server. Opening the HTML files directly will prevent the browser from reaching the same-origin API.
 
@@ -20,4 +20,4 @@ Open the pages through the Node server. Opening the HTML files directly will pre
 - `GET /api/sessions`: retrieve recently saved focus sessions
 - `POST /api/sessions`: save a completed focus round. Example JSON body: `{"mode":"focus","durationSeconds":1500}`
 
-Together session history is stored in `data/sessions.json`, with up to the latest 500 records retained. This is a local, single-user demo without authentication or multi-user separation.
+Session history from all three versions is stored in `data/sessions.json`, with up to the latest 500 records retained. This is a local, single-user demo without authentication or multi-user separation.
